@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Communication Protocols Visualized</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📡</text></svg>" type="image/svg+xml">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .protocol-card {
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .protocol-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+        .card-header {
+            font-weight: bold;
+            background-color: #f1f3f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .message-container {
+            height: 150px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 10px;
+        }
+        .chart-container {
+            height: 200px;
+            margin-top: 10px;
+        }
+        .connection-diagram {
+            height: 100px;
+            position: relative;
+            margin: 20px 0;
+        }
+        .connection-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background-color: #dee2e6;
+            transform: translateY(-50%);
+        }
+        .server, .client {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background-color: #fff;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #007bff;
+            z-index: 10;
+        }
+        .server {
+            right: 10px;
+        }
+        .client {
+            left: 10px;
+        }
+        .data-packet {
+            position: absolute;
+            width: 30px;
+            height: 15px;
+            background-color: #28a745;
+            border-radius: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 5;
+            display: none;
+        }
+        .request-packet {
+            background-color: #007bff;
+        }
+        .response-packet {
+            background-color: #28a745;
+        }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            display: inline-block;
+        }
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .protocol-description {
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .message {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 5px;
+            animation: fadeIn 0.5s;
+        }
+        .message.received {
+            background-color: #e9ecef;
+        }
+        .message.sent {
+            background-color: #d1ecf1;
+            text-align: right;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes packetAnimation {
+            0% { left: 100px; }
+            100% { left: calc(100% - 130px); }
+        }
+        @keyframes packetResponseAnimation {
+            0% { left: calc(100% - 130px); }
+            100% { left: 100px; }
+        }
+        .data-flow-animation {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.5); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 123, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0); }
+        }
+        .metrics-display {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        .key-point {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .metric-explanation {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        .tip {
+            margin-top: 5px;
+            padding: 5px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        .metric-circle {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin: 0 auto 5px auto;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .tip {
+            border-left: 4px solid #007bff;
+        }
+        .timeline-container {
+            border-left: 3px solid #007bff;
+            padding-left: 10px;
+            position: relative;
+        }
+        .update-event {
+            position: relative;
+            padding-left: 15px;
+        }
+        .update-event:before {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #007bff;
+            border-radius: 50%;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .weather-card {
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            background-size: cover;
+            background-position: center;
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+            height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .weather-card-overlay {
+            background: rgba(0,0,0,0.4);
+            height: 100%;
+            width: 100%;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .temp-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-weight: bold;
+            background: rgba(255,255,255,0.3);
+            margin-top: 5px;
+        }
+        .condition {
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        #weather-overview-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        #weather-overview-row .col {
+            flex: 1 0 30%;
+            min-width: 150px;
+        }
+        .system-update {
+            margin-bottom: 5px;
+            padding: 8px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            font-family: inherit;
+            font-size: 0.9rem;
+            border-left: 4px solid #6c757d;
+        }
+        .cpu { color: #ff6384; }
+        .memory { color: #36a2eb; }
+        .disk { color: #ffcd56; }
+        .message-container div {
+            margin-bottom: 5px;
+            padding: 8px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            font-family: inherit;
+            font-size: 0.9rem;
+            border-left: 4px solid #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Real-time Communication Protocols Visualized</h1>
+        
+        <!-- WebSocket Section (full width) -->
+        <div class="row">
+            <div class="col-md-12 mb-4">
+                <div class="protocol-description">
+                    <h4>WebSocket</h4>
+                    <p>
+                        WebSocket provides a <span class="key-point">persistent, bidirectional connection</span> between client and server. 
+                        Unlike HTTP, it maintains a single connection where <span class="key-point">both client and server can send messages at any time</span>.
+                    </p>
+                </div>
+                
+                <div class="card protocol-card">
+                    <div class="card-header">
+                        <div>WebSocket</div>
+                        <div class="status-badge" id="ws-status">Disconnected</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="connection-diagram" id="ws-diagram">
+                            <div class="connection-line"></div>
+                            <div class="client">Client</div>
+                            <div class="server">Server</div>
+                            <div class="data-packet request-packet" id="ws-request-packet"></div>
+                            <div class="data-packet response-packet" id="ws-response-packet"></div>
+                        </div>
+                        
+                        <div class="message-container" id="ws-messages"></div>
+                        
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="ws-input" placeholder="Type a message to send to the server...">
+                            <button class="btn btn-primary" id="ws-send">Send</button>
+                        </div>
+                        
+                        <div class="connection-controls mt-3 mb-3">
+                            <h6>Connection Simulator</h6>
+                            <p class="small text-muted">See how WebSockets handle multiple concurrent connections</p>
+                            <div class="d-flex align-items-center">
+                                <button class="btn btn-sm btn-primary me-2" id="add-connection">+ Add Connection</button>
+                                <button class="btn btn-sm btn-warning me-2" id="remove-connection">- Remove Connection</button>
+                                <span class="badge bg-info ms-2">Real: <span id="real-connections">1</span></span>
+                                <span class="badge bg-secondary ms-2">Simulated: <span id="simulated-connections">0</span></span>
+                                <span class="badge bg-success ms-2">Total: <span id="total-connections">1</span></span>
+                            </div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar" id="connection-bar" role="progressbar" style="width: 5%"></div>
+                            </div>
+                            <p class="small text-muted mt-1">
+                                <i class="bi bi-info-circle"></i> 
+                                WebSockets excel at managing many concurrent connections with minimal overhead.
+                            </p>
+                        </div>
+                        
+                        <div class="chart-container">
+                            <canvas id="ws-chart"></canvas>
+                        </div>
+                        <div class="metric-explanation mt-3">
+                            <h6><i class="bi bi-graph-up"></i> What This Shows</h6>
+                            <p class="small">
+                                This chart tracks the <strong>number of active WebSocket connections</strong> over time. 
+                                WebSockets maintain a persistent connection, making them ideal for applications needing 
+                                real-time updates with many concurrent users.
+                            </p>
+                            <div class="tip bg-light p-2 rounded border mt-2">
+                                <small>
+                                    <strong>Why it matters:</strong> Unlike HTTP, WebSockets have minimal per-connection overhead,
+                                    allowing thousands of simultaneous connections on modest hardware.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SSE and Long Polling in the same row, side by side -->
+        <div class="row">
+            <!-- Server-Sent Events Section -->
+            <div class="col-md-6 mb-4">
+                <div class="protocol-description">
+                    <h4>Server-Sent Events (SSE)</h4>
+                    <p>
+                        SSE allows the server to <span class="key-point">push updates to the client</span> over a single HTTP connection.
+                        It's <span class="key-point">one-way (server to client only)</span> but the browser automatically reconnects if the connection is lost.
+                    </p>
+                </div>
+                
+                <div class="card protocol-card">
+                    <div class="card-header">
+                        <div>Server-Sent Events</div>
+                        <div class="status-badge" id="sse-status">Disconnected</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="connection-diagram" id="sse-diagram">
+                            <div class="connection-line"></div>
+                            <div class="client">Client</div>
+                            <div class="server">Server</div>
+                            <div class="data-packet response-packet" id="sse-response-packet"></div>
+                        </div>
+                        
+                        <div class="message-container" id="sse-messages"></div>
+                        
+                        <div class="chart-container">
+                            <canvas id="sse-chart"></canvas>
+                        </div>
+                        
+                        <div class="metrics-display" id="detailed-metrics"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Long Polling Section -->
+            <div class="col-md-6 mb-4">
+                <div class="protocol-description">
+                    <h4>Long Polling</h4>
+                    <p>
+                        Long polling is where the client makes a request and the server <span class="key-point">holds the request open</span> until data is available.
+                        After receiving a response, the client <span class="key-point">immediately sends a new request</span>. This simulates real-time updates using standard HTTP.
+                    </p>
+                </div>
+                
+                <div class="card protocol-card">
+                    <div class="card-header">
+                        <div>Long Polling</div>
+                        <div class="status-badge" id="poll-status">Disconnected</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="connection-diagram" id="poll-diagram">
+                            <div class="connection-line"></div>
+                            <div class="client">Client</div>
+                            <div class="server">Server</div>
+                            <div class="data-packet request-packet" id="poll-request-packet"></div>
+                            <div class="data-packet response-packet" id="poll-response-packet"></div>
+                        </div>
+                        
+                        <div class="message-container" id="poll-messages"></div>
+                        
+                        <div class="chart-container">
+                            <canvas id="poll-chart"></canvas>
+                        </div>
+                        <div id="weather-monitor" class="mt-3">
+                            <h6 class="mb-2">Global Weather Monitor <small class="text-muted">(Updated via Long Polling)</small></h6>
+                            
+                            <!-- Weather Overview -->
+                            <div class="weather-overview mb-3 p-2 bg-light rounded">
+                                <div class="row g-2" id="weather-overview-row">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p>Loading weather data...</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Weather explanation -->
+                            <div class="metric-explanation mb-3">
+                                <h6><i class="bi bi-graph-up"></i> What This Shows</h6>
+                                <p class="small">
+                                    This visualization demonstrates <strong>real-time weather monitoring</strong> using Long Polling. 
+                                    The client requests data and waits for the server to respond with the latest weather information from cities worldwide.
+                                </p>
+                            </div>
+                            
+                            <!-- Weather Table -->
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>City</th>
+                                                    <th>Temperature</th>
+                                                    <th>Condition</th>
+                                                    <th>Humidity</th>
+                                                    <th>Wind</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="weather-table-body">
+                                                <tr>
+                                                    <td colspan="5" class="text-center">Loading weather data...</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Weather Updates Timeline -->
+                            <div class="update-timeline mt-3">
+                                <h6>Weather Activity</h6>
+                                <div id="update-events" class="timeline-container p-2 bg-light rounded" style="height: 120px; overflow-y: auto; font-size: 0.8rem;">
+                                    <div class="text-center text-muted">Waiting for weather updates...</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="metric-explanation mt-3">
+                            <h6><i class="bi bi-graph-up"></i> What This Shows</h6>
+                            <p class="small">
+                                This visualization demonstrates <strong>real-time weather monitoring</strong> using Long Polling. 
+                                The client requests data and waits for the server to respond with the latest weather information from multiple cities.
+                            </p>
+                            <div class="tip bg-light p-2 rounded border mt-2">
+                                <small>
+                                    <strong>Why Long Polling Works Here:</strong> Weather data updates at irregular intervals, 
+                                    making Long Polling ideal as it delivers updates promptly without maintaining a constant connection.
+                                    This approach works well through firewalls and proxies, making it suitable for public data feeds.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global chart variables
+        let wsChart, sseChart, pollChart;
+        
+        // Animation controllers
+        function animatePacket(elementId, isResponse = false) {
+            const packet = document.getElementById(elementId);
+            packet.style.display = 'block';
+            packet.style.animation = isResponse ? 
+                'packetResponseAnimation 1s forwards' : 
+                'packetAnimation 1s forwards';
+                
+            setTimeout(() => {
+                packet.style.display = 'none';
+                packet.style.animation = 'none';
+            }, 1000);
+        }
+        
+        // Helper function to add messages with animation
+        function addMessage(containerId, message, isSent = false) {
+            const container = document.getElementById(containerId);
+            const messageElement = document.createElement('div');
+            messageElement.className = isSent ? 'message sent' : 'message received';
+            messageElement.textContent = message;
+            container.appendChild(messageElement);
+            container.scrollTop = container.scrollHeight;
+            
+            // Limit the number of messages
+            while (container.children.length > 10) {
+                container.removeChild(container.firstChild);
+            }
+        }
+        
+        // Helper function to update status
+        function updateStatus(elementId, status) {
+            const statusEl = document.getElementById(elementId);
+            statusEl.className = 'status-badge';
+            statusEl.classList.add(status.toLowerCase());
+            statusEl.textContent = status;
+        }
+        
+        // Initialize charts
+        function initCharts() {
+            // WebSocket Chart - Line chart showing connection history
+            const wsCtx = document.getElementById('ws-chart').getContext('2d');
+            wsChart = new Chart(wsCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Active Connections',
+                        data: [],
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            display: true,
+                            title: { display: true, text: 'Time' }
+                        },
+                        y: {
+                            display: true,
+                            beginAtZero: true,
+                            title: { display: true, text: 'Connections' }
+                        }
+                    }
+                }
+            });
+            
+            // SSE Chart - Bar chart for system metrics
+            const sseCtx = document.getElementById('sse-chart').getContext('2d');
+            sseChart = new Chart(sseCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['CPU', 'Memory', 'Disk'],
+                    datasets: [{
+                        label: 'System Resources (%)',
+                        data: [0, 0, 0],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.6)',
+                            'rgba(54, 162, 235, 0.6)',
+                            'rgba(255, 205, 86, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgb(255, 99, 132)',
+                            'rgb(54, 162, 235)',
+                            'rgb(255, 205, 86)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+            
+            // Long Polling Chart - Radar for weather data
+            const pollCtx = document.getElementById('poll-chart').getContext('2d');
+            pollChart = new Chart(pollCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['London', 'New York', 'Tokyo', 'Sydney', 'Bengaluru'],
+                    datasets: [{
+                        label: 'Temperature (°C)',
+                        data: [15, 20, 25, 18, 28],
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgb(255, 99, 132)',
+                        pointBackgroundColor: 'rgb(255, 99, 132)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(255, 99, 132)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: true
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 40
+                        }
+                    }
+                }
+            });
+        }
+        
+        // WebSocket Implementation
+        function connectWebSocket() {
+            updateStatus('ws-status', 'Connecting...');
+            
+            // Clear previous connection
+            if (window.socket) {
+                window.socket.close();
+            }
+            
+            // Connect to WebSocket
+            const socket = new WebSocket(`ws://${window.location.host}/ws`);
+            window.socket = socket;
+            
+            socket.onopen = function() {
+                updateStatus('ws-status', 'Connected');
+                document.querySelector('#ws-diagram .connection-line').style.backgroundColor = '#28a745';
+                document.querySelector('#ws-diagram .server').classList.add('data-flow-animation');
+                document.querySelector('#ws-diagram .client').classList.add('data-flow-animation');
+                addMessage('ws-messages', 'Connected to WebSocket server');
+            };
+            
+            socket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                
+                // Animate packet coming from server
+                animatePacket('ws-response-packet', true);
+                
+                // Check if this is a response to a user message
+                if (data.type === 'response') {
+                    addMessage('ws-messages', data.message);
+                } else {
+                    // Regular server update
+                    const timestamp = new Date(data.timestamp * 1000).toLocaleTimeString();
+                    
+                    // Update chart data
+                    wsChart.data.labels.push(timestamp);
+                    wsChart.data.datasets[0].data.push(data.count);
+                    
+                    // Keep only last 10 data points
+                    if (wsChart.data.labels.length > 10) {
+                        wsChart.data.labels.shift();
+                        wsChart.data.datasets[0].data.shift();
+                    }
+                    
+                    wsChart.update();
+                    
+                    // Add info message
+                    addMessage('ws-messages', `Server update: ${data.count} connections active`);
+                }
+            };
+            
+            socket.onclose = function() {
+                updateStatus('ws-status', 'Disconnected');
+                document.querySelector('#ws-diagram .connection-line').style.backgroundColor = '#dee2e6';
+                document.querySelector('#ws-diagram .server').classList.remove('data-flow-animation');
+                document.querySelector('#ws-diagram .client').classList.remove('data-flow-animation');
+                addMessage('ws-messages', 'Disconnected from WebSocket server. Reconnecting...');
+                
+                // Reconnect after delay
+                setTimeout(connectWebSocket, 5000);
+            };
+            
+            socket.onerror = function(error) {
+                updateStatus('ws-status', 'Error');
+                addMessage('ws-messages', 'WebSocket error. Reconnecting...');
+            };
+            
+            // Set up send button
+            document.getElementById('ws-send').addEventListener('click', function() {
+                const input = document.getElementById('ws-input');
+                const message = input.value.trim();
+                
+                if (message && socket.readyState === WebSocket.OPEN) {
+                    // Animate packet going to server
+                    animatePacket('ws-request-packet');
+                    
+                    socket.send(message);
+                    addMessage('ws-messages', message, true);
+                    input.value = '';
+                }
+            });
+            
+            // Allow sending with Enter key
+            document.getElementById('ws-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    document.getElementById('ws-send').click();
+                }
+            });
+        }
+        
+        // SSE Implementation
+        function connectSSE() {
+            updateStatus('sse-status', 'Connecting');
+            document.querySelector('#sse-diagram .connection-line').style.backgroundColor = '#ffc107';
+            
+            const eventSource = new EventSource('/sse');
+            
+            eventSource.onopen = function() {
+                updateStatus('sse-status', 'Connected');
+                document.querySelector('#sse-diagram .connection-line').style.backgroundColor = '#28a745';
+                
+                // Add a properly formatted message
+                const msgContainer = document.getElementById('sse-messages');
+                const connectMsg = document.createElement('div');
+                connectMsg.textContent = 'Connected to SSE server';
+                msgContainer.appendChild(connectMsg);
+                msgContainer.scrollTop = msgContainer.scrollHeight;
+            };
+            
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                
+                // Animate packet
+                animatePacket('sse-response-packet', true);
+                
+                // Create a properly formatted system update message
+                const msgContainer = document.getElementById('sse-messages');
+                const msgElement = document.createElement('div');
+                
+                // Format with proper styling for each metric
+                msgElement.innerHTML = `System update: 
+                    <span class="cpu">CPU: ${data.visual_data.values[0].toFixed(1)}%</span>, 
+                    <span class="memory">Memory: ${data.visual_data.values[1].toFixed(1)}%</span>, 
+                    <span class="disk">Disk: ${data.visual_data.values[2].toFixed(1)}%</span>`;
+                
+                // Add to container
+                msgContainer.appendChild(msgElement);
+                msgContainer.scrollTop = msgContainer.scrollHeight;
+                
+                // Limit messages
+                while (msgContainer.children.length > 10) {
+                    msgContainer.removeChild(msgContainer.firstChild);
+                }
+                
+                // Update the chart
+                if (data.visual_data) {
+                    sseChart.data.datasets[0].data = data.visual_data.values;
+                    sseChart.update();
+                }
+                
+                // Update the detailed metrics display
+                if (data.system_metrics) {
+                    updateDetailedMetrics(data.system_metrics);
+                }
+            };
+            
+            eventSource.onerror = function() {
+                updateStatus('sse-status', 'Error');
+                document.querySelector('#sse-diagram .connection-line').style.backgroundColor = '#dc3545';
+                
+                // Add error message
+                const msgContainer = document.getElementById('sse-messages');
+                const errorMsg = document.createElement('div');
+                errorMsg.textContent = 'SSE connection error';
+                errorMsg.style.color = '#dc3545';
+                msgContainer.appendChild(errorMsg);
+                msgContainer.scrollTop = msgContainer.scrollHeight;
+                
+                eventSource.close();
+                setTimeout(connectSSE, 5000);
+            };
+        }
+        
+        // Add/update the updateDetailedMetrics function
+        function updateDetailedMetrics(metrics) {
+            const metricsDisplay = document.getElementById('detailed-metrics');
+            
+            metricsDisplay.innerHTML = `
+                <h6 class="mt-3">System Resources:</h6>
+                <div class="progress mb-2">
+                    <div class="progress-bar bg-danger" style="width: ${metrics.cpu.percent}%" 
+                        title="CPU: ${metrics.cpu.percent.toFixed(1)}%">
+                        CPU: ${metrics.cpu.percent.toFixed(1)}%
+                    </div>
+                </div>
+                <div class="progress mb-2">
+                    <div class="progress-bar bg-primary" style="width: ${metrics.memory.percent}%" 
+                        title="Memory: ${metrics.memory.percent.toFixed(1)}%">
+                        Memory: ${metrics.memory.percent.toFixed(1)}%
+                    </div>
+                </div>
+                <div class="progress mb-2">
+                    <div class="progress-bar bg-warning" style="width: ${metrics.disk.percent}%" 
+                        title="Disk: ${metrics.disk.percent.toFixed(1)}%">
+                        Disk: ${metrics.disk.percent.toFixed(1)}%
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Helper function to format bytes
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+        
+        // Update system metrics display
+        function updateSystemMetricsDisplay(metrics) {
+            const container = document.getElementById('detailed-metrics');
+            
+            container.innerHTML = `
+                <h6>Real-time System Metrics:</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <small>CPU: ${metrics.cpu.percent.toFixed(1)}% (${metrics.cpu.cores} cores)</small>
+                        <div class="progress mb-2">
+                            <div class="progress-bar" role="progressbar" style="width: ${metrics.cpu.percent}%" 
+                                aria-valuenow="${metrics.cpu.percent}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <small>Memory: ${metrics.memory.percent.toFixed(1)}% (${formatBytes(metrics.memory.used)} / ${formatBytes(metrics.memory.total)})</small>
+                        <div class="progress mb-2">
+                            <div class="progress-bar bg-info" role="progressbar" style="width: ${metrics.memory.percent}%" 
+                                aria-valuenow="${metrics.memory.percent}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <small>Disk: ${metrics.disk.percent.toFixed(1)}% (${formatBytes(metrics.disk.used)} / ${formatBytes(metrics.disk.total)})</small>
+                        <div class="progress mb-2">
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: ${metrics.disk.percent}%" 
+                                aria-valuenow="${metrics.disk.percent}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <small>Network: ↓${formatBytes(metrics.network.bytes_recv)} ↑${formatBytes(metrics.network.bytes_sent)}</small>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Long Polling Implementation
+        async function startLongPolling() {
+            while (true) {
+                try {
+                    // Show request animation
+                    animatePacket('poll-request-packet');
+                    updateStatus('poll-status', 'Pending');
+                    
+                    // Make the request
+                    addMessage('poll-messages', 'Request sent, waiting for updates...');
+                    const response = await fetch('/poll');
+                    
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log("Long polling data received:", data);
+                    
+                    // Show response animation
+                    animatePacket('poll-response-packet', true);
+                    updateStatus('poll-status', 'Received');
+                    
+                    // Process the response
+                    addMessage('poll-messages', `Received: ${data.message}`);
+                    
+                    // Update the weather data display
+                    updateWeatherData(data);
+                    
+                    // Update the radar chart with weather data
+                    if (data.visual_data && data.visual_data.values && data.visual_data.values.length > 0) {
+                        pollChart.data.labels = data.visual_data.labels;
+                        pollChart.data.datasets[0].data = data.visual_data.values;
+                        pollChart.update();
+                    }
+                } catch (error) {
+                    console.error("Long polling error:", error);
+                    updateStatus('poll-status', 'Error');
+                    document.querySelector('#poll-diagram .connection-line').style.backgroundColor = '#dc3545';
+                    addMessage('poll-messages', 'Long polling error: ' + error.message);
+                    
+                    // Wait before retrying
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                }
+                
+                // Small delay before sending next request
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+        
+        // Add this function to update the weather data display
+        function updateWeatherData(data) {
+            if (!data.weather_data) {
+                console.error("No weather data received");
+                return;
+            }
+            
+            console.log("Weather data received:", data.weather_data);
+            console.log("Number of cities:", Object.keys(data.weather_data).length);
+            
+            // Update weather cards in the overview
+            const overviewRow = document.getElementById('weather-overview-row');
+            overviewRow.innerHTML = '';
+            
+            // Add weather cards for each city
+            Object.entries(data.weather_data).forEach(([cityId, cityData]) => {
+                const col = document.createElement('div');
+                col.className = 'col';
+                
+                // Get background image based on weather condition
+                const bgImage = getWeatherBackgroundImage(cityData.condition);
+                
+                // Create weather card
+                col.innerHTML = `
+                    <div class="weather-card" style="background-image: url('${bgImage}')">
+                        <div class="weather-card-overlay">
+                            <div>
+                                <h6 class="mb-0">${cityData.city_name}, ${cityData.country}</h6>
+                                <div class="temp-badge">${cityData.temperature.toFixed(1)}°C</div>
+                            </div>
+                            <div>
+                                <div class="condition">${cityData.condition}</div>
+                                <small>Humidity: ${cityData.humidity}% | Wind: ${cityData.wind_speed.toFixed(1)} km/h</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                overviewRow.appendChild(col);
+            });
+            
+            // Update weather table
+            const tableBody = document.getElementById('weather-table-body');
+            tableBody.innerHTML = '';
+            
+            // Add rows for each city
+            Object.entries(data.weather_data).forEach(([cityId, cityData]) => {
+                const row = document.createElement('tr');
+                
+                // Change color based on temperature change
+                const changeColor = cityData.temp_change > 0 ? 'text-danger' : 
+                                   cityData.temp_change < 0 ? 'text-primary' : '';
+                
+                // Change symbol based on temperature change
+                const changeSymbol = cityData.temp_change > 0 ? '↑' : 
+                                    cityData.temp_change < 0 ? '↓' : '';
+                
+                row.innerHTML = `
+                    <td><strong>${cityData.city_name}</strong> <small class="text-muted">${cityData.country}</small></td>
+                    <td>
+                        ${cityData.temperature.toFixed(1)}°C 
+                        <small class="${changeColor}">${changeSymbol} ${Math.abs(cityData.temp_change).toFixed(1)}</small>
+                    </td>
+                    <td>${cityData.condition}</td>
+                    <td>${cityData.humidity}%</td>
+                    <td>${cityData.wind_speed} km/h</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Update the timeline of events
+            if (data.updates && data.updates.length > 0) {
+                const timelineContainer = document.getElementById('update-events');
+                
+                // Clear if there are too many events
+                if (timelineContainer.children.length > 50) {
+                    timelineContainer.innerHTML = '';
+                }
+                
+                // Add the most recent update to the timeline
+                const latestUpdate = data.updates[data.updates.length - 1];
+                if (Object.keys(latestUpdate.changes).length > 0) {
+                    const updateDiv = document.createElement('div');
+                    updateDiv.className = 'update-event mb-1';
+                    
+                    const timestamp = new Date(latestUpdate.timestamp * 1000).toLocaleTimeString();
+                    let updateText = `<strong>${timestamp}</strong>: `;
+                    
+                    const changes = Object.entries(latestUpdate.changes).map(([cityId, change]) => {
+                        const direction = change.temp_change > 0 ? '↑' : '↓';
+                        const colorClass = change.temp_change > 0 ? 'text-danger' : 'text-primary';
+                        return `<span class="${colorClass}">${change.city_name} ${direction}${Math.abs(change.temp_change).toFixed(1)}°C (now ${change.new_temp.toFixed(1)}°C)</span>`;
+                    }).join(', ');
+                    
+                    updateDiv.innerHTML = updateText + changes;
+                    timelineContainer.insertBefore(updateDiv, timelineContainer.firstChild);
+                }
+            }
+        }
+        
+        // Add helper function to get weather background images
+        function getWeatherBackgroundImage(condition) {
+            const conditionLower = condition.toLowerCase();
+            
+            if (conditionLower.includes('clear') || conditionLower.includes('sun')) {
+                return 'https://images.unsplash.com/photo-1566228015668-4c45dbc4e2f5?w=300&auto=format&fit=crop&q=80';
+            } else if (conditionLower.includes('cloud')) {
+                return 'https://images.unsplash.com/photo-1611928482473-7b27d24eab80?w=300&auto=format&fit=crop&q=80';
+            } else if (conditionLower.includes('rain') || conditionLower.includes('drizzle')) {
+                return 'https://images.unsplash.com/photo-1620385019253-b051a26048ce?w=300&auto=format&fit=crop&q=80';
+            } else if (conditionLower.includes('snow')) {
+                return 'https://images.unsplash.com/photo-1491002052546-bf38f186af56?w=300&auto=format&fit=crop&q=80';
+            } else if (conditionLower.includes('thunder')) {
+                return 'https://images.unsplash.com/photo-1605727216801-e27ce1d0cc28?w=300&auto=format&fit=crop&q=80';
+            } else if (conditionLower.includes('fog')) {
+                return 'https://images.unsplash.com/photo-1487621167305-5d248087c724?w=300&auto=format&fit=crop&q=80';
+            } else {
+                return 'https://images.unsplash.com/photo-1562155847-c05f7386b204?w=300&auto=format&fit=crop&q=80';
+            }
+        }
+        
+        // Connection simulation
+        async function updateConnectionCounts() {
+            try {
+                const response = await fetch('/connections');
+                const data = await response.json();
+                
+                document.getElementById('real-connections').textContent = data.real;
+                document.getElementById('simulated-connections').textContent = data.simulated;
+                document.getElementById('total-connections').textContent = data.total;
+                
+                // Update progress bar
+                const percent = Math.min(data.total, 100);
+                document.getElementById('connection-bar').style.width = `${percent}%`;
+                
+                // Change color based on count
+                const bar = document.getElementById('connection-bar');
+                if (data.total < 30) {
+                    bar.className = 'progress-bar bg-success';
+                } else if (data.total < 70) {
+                    bar.className = 'progress-bar bg-warning';
+                } else {
+                    bar.className = 'progress-bar bg-danger';
+                }
+            } catch (error) {
+                console.error("Error fetching connection counts:", error);
+            }
+        }
+        
+        // Initialize everything when the page loads
+        window.addEventListener('DOMContentLoaded', function() {
+            // Initialize charts
+            initCharts();
+            
+            // Connect to WebSocket
+            connectWebSocket();
+            
+            // Connect to SSE
+            connectSSE();
+            
+            // Start Long Polling
+            startLongPolling();
+            
+            // Add to window.load event handler
+            document.getElementById('add-connection').addEventListener('click', async function() {
+                try {
+                    await fetch('/simulate/add', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ count: 5 })  // Add 5 connections at once
+                    });
+                    await updateConnectionCounts();
+                } catch (error) {
+                    console.error("Error adding simulated connections:", error);
+                }
+            });
+            
+            document.getElementById('remove-connection').addEventListener('click', async function() {
+                try {
+                    await fetch('/simulate/remove', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ count: 5 })  // Remove 5 connections at once
+                    });
+                    await updateConnectionCounts();
+                } catch (error) {
+                    console.error("Error removing simulated connections:", error);
+                }
+            });
+            
+            // Call this periodically
+            setInterval(updateConnectionCounts, 5000);
+            
+            // Call it once on page load
+            updateConnectionCounts();
+        });
+    </script>
+</body>
+</html>
