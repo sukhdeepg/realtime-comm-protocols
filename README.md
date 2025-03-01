@@ -1,10 +1,12 @@
 # Real-time Communication Protocols
 
 This project demonstrates three key real-time communication protocols used in modern web applications:
-
 1. **WebSockets** - Full-duplex, persistent connections
 2. **Server-Sent Events (SSE)** - One-way server-to-client streaming
 3. **Long Polling** - Request-response pattern with delayed server responses
+
+## Demo
+<video src="https://github.com/user-attachments/assets/342b5893-2da8-46ff-aafc-d6de9f81ad52"></video>
 
 ## Features
 
